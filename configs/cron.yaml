@@ -1,0 +1,15 @@
+cron_jobs:
+  - name: cleanup-expired-jobs
+    schedule: "0 * * * *"
+    type: "system.cleanup_expired_jobs"
+    payload:
+      older_than_days: 30
+    max_attempts: 3
+
+  - name: daily-test-reminder
+    schedule: "0 9 * * *"
+    type: "telegram.send_message"
+    payload:
+      chat_id: 1598351537
+      text: "Daily scheduled message"
+    max_attempts: 5
