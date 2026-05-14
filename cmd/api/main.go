@@ -56,32 +56,33 @@ func main() {
 	jobService := jobs.New(repo, redisQueue, log)
 	router := NewRouter(log, jobService, cfg.TelegramWebhookSecret, cfg.PaymentWebhookSecret)
 	server := httpserver.New(cfg.HTTPAddr, router, log)
+
+	go func() {
+		maxRetries := 5
+		webhookURL := fmt.Sprintf("https://%s/webhook/telegram", os.Getenv("RENDER_EXTERNAL_URL"))
+
+		for i := 0; i < maxRetries; i++ {
+			if i > 0 {
+				log.Info("retrying webhook registration", "attempt", i+1, "max", maxRetries)
+				time.Sleep(5 * time.Second)
+			}
+
+			if err := setTelegramWebhook(cfg.TelegramBotToken, webhookURL, cfg.TelegramWebhookSecret); err != nil {
+				log.Error("failed to set webhook", "error", err, "attempt", i+1)
+				continue
+			}
+
+			log.Info("webhook registered successfully", "url", webhookURL)
+			return
+		}
+
+		log.Error("could not register webhook after multiple attempts")
+	}()
 	if err := server.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {
 		log.Error("api stoped with error", "error", err)
 		os.Exit(1)
 	}
-
-	maxRetries := 5
-	webhookURL := fmt.Sprintf("https://%s/webhook/telegram", os.Getenv("RENDER_EXTERNAL_URL"))
-
-	for i := 0; i < maxRetries; i++ {
-		if i > 0 {
-			log.Info("retrying webhook registration", "attempt", i+1, "max", maxRetries)
-			time.Sleep(5 * time.Second)
-		}
-
-		if err := setTelegramWebhook(cfg.TelegramBotToken, webhookURL, cfg.TelegramWebhookSecret); err != nil {
-			log.Error("failed to set webhook", "error", err, "attempt", i+1)
-			continue
-		}
-
-		log.Info("webhook registered successfully", "url", webhookURL)
-		return
-	}
-
-	log.Error("could not register webhook after multiple attempts")
 }
-
 func NewRouter(log *slog.Logger, jobService *jobs.Service, telegarmSecret, paymentSecret string) http.Handler {
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
