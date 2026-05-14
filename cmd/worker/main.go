@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -37,6 +38,12 @@ func main() {
 	workersvc.RegisterHandlersWithOptions(registry, repo, log, cfg.TelegramBotToken, workersvc.HandlerOptions{
 		JobCreator: jobService,
 	})
+	go func() {
+		http.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+		})
+		http.ListenAndServe(":8080", nil)
+	}()
 	worker := workersvc.New(repo, readyQueue, registry, log, cfg.WorkerConcurrency, "")
 	if err := worker.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {
 		log.Error("worker stopped with error", "error", err)

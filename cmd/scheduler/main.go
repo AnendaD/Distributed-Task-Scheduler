@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -55,7 +56,12 @@ func main() {
 		defer cancel()
 		_ = cronProducer.Stop(shutdownCtx)
 	}()
-
+	go func() {
+		http.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+		})
+		http.ListenAndServe(":8080", nil)
+	}()
 	scheduler := schedulersvc.New(repo, readyQueue, log, cfg.SchedulerInterval, cfg.SchedulerBatchSize)
 	if err := scheduler.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {
 		log.Error("scheduler stopped with error", "error", err)
