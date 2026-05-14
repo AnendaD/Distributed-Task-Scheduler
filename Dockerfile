@@ -9,11 +9,13 @@ RUN CGO_ENABLED=0 GOOS=linux go build -o /out/app ./cmd/${SERVICE}
 
 FROM alpine:3.22
 
+RUN apk add --no-cache ca-certificates
+
 RUN adduser -D -H appuser
 USER appuser
 WORKDIR /app
 COPY --from=builder /out/app /app/app
 COPY configs /app/configs
 
-EXPOSE 8080 9090 9093
+EXPOSE 8080
 ENTRYPOINT ["/app/app"]

@@ -1,0 +1,30 @@
+services:
+  - type: web
+    name: api
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    dockerBuildArgs:
+      SERVICE: api
+    envVars:
+      - fromGroup: scheduler-env
+
+  - type: worker
+    name: scheduler
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    dockerBuildArgs:
+      SERVICE: scheduler
+    envVars:
+      - fromGroup: scheduler-env
+
+  - type: worker
+    name: worker
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    dockerBuildArgs:
+      SERVICE: worker
+    envVars:
+      - fromGroup: scheduler-env
