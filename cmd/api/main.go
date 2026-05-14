@@ -1,8 +1,11 @@
 package main
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
@@ -51,6 +54,15 @@ func main() {
 
 	jobService := jobs.New(repo, redisQueue, log)
 	router := NewRouter(log, jobService, cfg.TelegramWebhookSecret, cfg.PaymentWebhookSecret)
+	webhookURL := fmt.Sprintf("https://%s/webhook/telegram", os.Getenv("RENDER_EXTERNAL_URL"))
+
+	if err := setTelegramWebhook(
+		os.Getenv("TELEGRAM_BOT_TOKEN"),
+		webhookURL,
+		os.Getenv("TELEGRAM_WEBHOOK_SECRET"),
+	); err != nil {
+		log.Error("failed to set webhook", "error", err)
+	}
 	server := httpserver.New(cfg.HTTPAddr, router, log)
 
 	if err := server.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {
@@ -74,4 +86,31 @@ func NewRouter(log *slog.Logger, jobService *jobs.Service, telegarmSecret, payme
 	r.Post("/webhooks/payment", payment.NewHandler(jobService, paymentSecret, log).ServeHTTP)
 	log.Info("router initalized")
 	return r
+}
+
+func setTelegramWebhook(botToken, webhookURL, secret string) error {
+	url := fmt.Sprintf("https://api.telegram.org/bot%s/setWebhook", botToken)
+
+	payload := map[string]string{
+		"url":          webhookURL,
+		"secret_token": secret,
+	}
+
+	body, _ := json.Marshal(payload)
+	resp, err := http.Post(url, "application/json", bytes.NewReader(body))
+	if err != nil {
+		return fmt.Errorf("setWebhook request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	var result struct {
+		OK          bool   `json:"ok"`
+		Description string `json:"description"`
+	}
+	json.NewDecoder(resp.Body).Decode(&result)
+
+	if !result.OK {
+		return fmt.Errorf("setWebhook failed: %s", result.Description)
+	}
+	return nil
 }
