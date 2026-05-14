@@ -15,7 +15,6 @@ type Config struct {
 	TelegramBotToken      string
 	TelegramWebhookSecret string
 	PaymentWebhookSecret  string
-	MetricsAddr           string
 	RedisAddr             string
 	RedisPassword         string
 	RedisDB               int
@@ -46,7 +45,6 @@ func Load() *Config {
 		TelegramBotToken:      getEnv("TELEGRAM_BOT_TOKEN", ""),
 		TelegramWebhookSecret: getEnv("TELEGRAM_WEBHOOK_SECRET", ""),
 		PaymentWebhookSecret:  getEnv("PAYMENT_WEBHOOK_SECRET", ""),
-		MetricsAddr:           getEnv("METRICS_ADDR", ":9090"),
 		RedisAddr:             getEnv("REDIS_ADDR", "localhost:6379"),
 		RedisPassword:         getEnv("REDIS_PASSWORD", ""),
 		RedisDB:               getEnvInt("REDIS_DB", 0),
