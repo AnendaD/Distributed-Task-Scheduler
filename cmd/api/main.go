@@ -59,7 +59,9 @@ func main() {
 
 	go func() {
 		maxRetries := 5
-		webhookURL := fmt.Sprintf("https://%s/webhooks/telegram", os.Getenv("RENDER_EXTERNAL_URL"))
+		baseURL := os.Getenv("RENDER_EXTERNAL_URL")
+		log.Info("RENDER_EXTERNAL_URL", "value", baseURL)
+		webhookURL := fmt.Sprintf("%s/webhooks/telegram", baseURL)
 
 		for i := 0; i < maxRetries; i++ {
 			if i > 0 {
