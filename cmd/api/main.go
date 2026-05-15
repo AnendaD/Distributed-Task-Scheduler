@@ -91,10 +91,10 @@ func NewRouter(log *slog.Logger, jobService *jobs.Service, telegarmSecret, payme
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Recoverer)
 
-	r.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {
+	r.Handle("/healthz", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("ok"))
-	})
+	}))
 
 	r.Post("/webhooks/telegram", telegram.NewHandler(jobService, telegarmSecret).ServeHTTP)
 	r.Post("/webhooks/payment", payment.NewHandler(jobService, paymentSecret, log).ServeHTTP)
